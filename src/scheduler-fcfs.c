@@ -97,4 +97,5 @@ void schedule(int channel) {
   }
 }
 
-void scheduler_stats() { /* Nothing to print for now. */ }
+void scheduler_stats() { /* Nothing to print for now. */
+}

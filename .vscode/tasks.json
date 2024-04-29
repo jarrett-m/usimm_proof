@@ -4,7 +4,7 @@
 		{
 			"label": "Make all",
 			"type": "shell",
-			"command": "make all",
+			"command": "make",
 			"options": {
 				"cwd": "${workspaceFolder}/src"
 			}

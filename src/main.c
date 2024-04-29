@@ -335,27 +335,27 @@ int main(int argc, char *argv[]) {
               // Check to see if the read is for buffered data in write queue -
               // return constant latency if match in WQ
               // add in read queue otherwise
-              if (SECURED == 0){
+              if (SECURED == 0) {
                 int lat = read_matches_write_or_read_queue(addr[numc]);
                 if (lat) {
                   ROB[numc].comptime[ROB[numc].tail] =
                       CYCLE_VAL + lat + PIPELINEDEPTH;
                 } else {
-                  //if non-secured baseline, insert read into read queue
-                    insert_read(addr[numc], CYCLE_VAL, numc, ROB[numc].tail,
-                                instrpc[numc]);
+                  // if non-secured baseline, insert read into read queue
+                  insert_read(addr[numc], CYCLE_VAL, numc, ROB[numc].tail,
+                              instrpc[numc]);
                 }
-              } 
-              //Secured!
+              }
+              // Secured!
               else {
-                //if secured, insert read into read queue
+                // if secured, insert read into read queue
                 int lat = read_matches_write_or_read_macro_queue(addr[numc]);
                 if (lat) {
                   ROB[numc].comptime[ROB[numc].tail] =
                       CYCLE_VAL + lat + PIPELINEDEPTH;
                 } else {
-                insert_macro_read(addr[numc], CYCLE_VAL, numc, ROB[numc].tail,
-                            instrpc[numc]);
+                  insert_macro_read(addr[numc], CYCLE_VAL, numc, ROB[numc].tail,
+                                    instrpc[numc]);
                 }
               }
             } else { /* This must be a 'W'.  We are confirming that while
