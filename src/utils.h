@@ -13,7 +13,6 @@
 #define UT_MEM_DEBUG(...)
 #endif
 
-
 #define SCHEDULER_DEBUG
 #ifdef SCHEDULER_DEBUG
 #define SCHEDELUR_DEBUG_MSG(...) printf(__VA_ARGS__)
@@ -22,4 +21,3 @@
 #endif
 
 #endif // __UTILS_H__
-
