@@ -335,13 +335,28 @@ int main(int argc, char *argv[]) {
               // Check to see if the read is for buffered data in write queue -
               // return constant latency if match in WQ
               // add in read queue otherwise
-              int lat = read_matches_write_or_read_queue(addr[numc]);
-              if (lat) {
-                ROB[numc].comptime[ROB[numc].tail] =
-                    CYCLE_VAL + lat + PIPELINEDEPTH;
-              } else {
-                insert_read(addr[numc], CYCLE_VAL, numc, ROB[numc].tail,
+              if (SECURED == 0){
+                int lat = read_matches_write_or_read_queue(addr[numc]);
+                if (lat) {
+                  ROB[numc].comptime[ROB[numc].tail] =
+                      CYCLE_VAL + lat + PIPELINEDEPTH;
+                } else {
+                  //if non-secured baseline, insert read into read queue
+                    insert_read(addr[numc], CYCLE_VAL, numc, ROB[numc].tail,
+                                instrpc[numc]);
+                }
+              } 
+              //Secured!
+              else {
+                //if secured, insert read into read queue
+                int lat = read_matches_write_or_read_macro_queue(addr[numc]);
+                if (lat) {
+                  ROB[numc].comptime[ROB[numc].tail] =
+                      CYCLE_VAL + lat + PIPELINEDEPTH;
+                } else {
+                insert_macro_read(addr[numc], CYCLE_VAL, numc, ROB[numc].tail,
                             instrpc[numc]);
+                }
               }
             } else { /* This must be a 'W'.  We are confirming that while
                         reading the trace. */
@@ -430,6 +445,7 @@ int main(int argc, char *argv[]) {
       }
     } /* End of for loop that goes through all cores. */
 
+    // add stuff here later from the original
     if (num_done == NUMCORES) {
       /* Traces have been consumed and in-flight windows are empty.  Must
        * confirm that write queues have been drained. */
@@ -450,6 +466,10 @@ int main(int argc, char *argv[]) {
     //  ROB[numc].comptime[ROB[numc].head], ROB[numc].optype[ROB[numc].head],
     //  ROB[numc].mem_address[ROB[numc].head], ROB[numc].tracedone);
     //}
+
+    micro_req_gen();
+    update_backward();
+    clean_macro_queues();
 
     CYCLE_VAL++; /* Advance the simulation cycle. */
   }

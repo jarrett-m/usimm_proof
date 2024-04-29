@@ -1,9 +1,43 @@
 #ifndef __MEMORY_CONTROLLER_H__
 #define __MEMORY_CONTROLLER_H__
-
+#include "uthash.h"
+#include "params.h"
 #define MAX_NUM_CHANNELS 16
 #define MAX_NUM_RANKS 16
 #define MAX_NUM_BANKS 32
+#define MAX_NUMCORES 8
+
+#define RRIP_N 32
+#define SECURED 1
+#define MAC 1
+// Threshold for THETA
+#define THRES_THETA_1 2
+#define THRES_THETA_2 6
+// Recency - LRU,SRRIP
+#define ALPHA 2
+// Level - Height of Tree
+#define BETA 1
+// Deadblock prediction based on number of hits  
+#define THETA 0
+#define VC_MIRROR_RP 0
+#define LRU_REP 1
+#define TYPE_RRIP 1
+#define COLLECT_CACHE_TRACE 0
+#define BIGNUM_TRACE 10000000
+#define PROB1 8
+// BRRIP can be set to one just if LRU_REP = 2 or 3. 
+#define BRRIP 0
+// BRRIP can be set to one just if LRU_REP = 2 or 3. 
+#define LRRIP 0
+
+// memory capacity which is touched by trace 
+// this memory is for pure memory
+// the memory defined here is biger
+// because we need to save MAC, Hash,
+// and counters as well
+#define TRACE_CAPACITY (long long int) 32*1024*1024*1024
+#define MAX_MACRO_REQ 300
+
 
 // Moved here from main.c
 long long int *committed; // total committed instructions in each core
@@ -39,6 +73,10 @@ typedef enum {
 // Request Types
 typedef enum { READ, WRITE } optype_t;
 
+// request kind 
+typedef enum { DATA, PROOF} microoptype_t;
+
+
 // Single request structure self-explanatory
 typedef struct req {
   unsigned long long int physical_address;
@@ -59,6 +97,8 @@ typedef struct req {
                                 // this request (valid only for reads)
   void *user_ptr;               // user_specified data
   struct req *next;
+  microoptype_t type; // data or proof
+  int picked; // 0 if not picked, 1 if picked
 } request_t;
 
 // Bankstates
@@ -175,6 +215,42 @@ long long int stats_num_powerdown_slow[MAX_NUM_CHANNELS][MAX_NUM_RANKS];
 long long int stats_num_powerdown_fast[MAX_NUM_CHANNELS][MAX_NUM_RANKS];
 long long int stats_num_powerup[MAX_NUM_CHANNELS][MAX_NUM_RANKS];
 
+//secured policy stuff
+long long int stats_macro_reads_seen;
+long long int macro_read_queue_length;
+long long int num_macro_read_merge_read;
+long long int num_macro_read_merge_write;
+long long int meta_cache_hit_read_return;
+long long int meta_cache_miss_read_return;
+long long int stats_macro_reads_completed;
+long long int stats_macro_writes_completed;
+
+double stats_average_macro_read_latency;
+double stats_average_macro_write_latency;
+
+
+typedef struct mt_table 
+{
+	request_t * macro_req;
+	request_t * micro_req;
+	struct mt_table * next;
+} mt_table_t;
+
+request_t * macro_read_queue_head;
+mt_table_t * mt_tab; 
+int size_of_map;
+
+struct Value {
+    int num_accessed;
+    long long int cycle_last_accessed;
+};
+
+struct Map {
+    unsigned long long int addr;
+    struct Value value;
+};
+struct Map map_cache_activity[BIGNUM_TRACE];
+
 // functions
 
 // to get log with base 2
@@ -250,8 +326,36 @@ request_t *insert_write(long long int physical_address,
                         long long int arrival_time, int thread_id,
                         int instruction_id);
 
+// insert macro read, SECURED policy
+request_t *insert_macro_read(long long int physical_address,
+                             long long int arrival_time, int thread_id,
+                             int instruction_id, long long int instruction_pc);
+
+// insert micro read, SECURED policy
+void clean_macro_queue();
+
+// find if there is a matching request in the macro read queue
+int read_matches_write_or_read_macro_queue(long long int physical_address);
+
+// to generate micro requests from macro one
+void micro_req_gen();
+
+//return the size of table of MACRO request
+int size_macro_req_table();
+
+// Remove transferred macro requests from the queues.
+void clean_macro_queues();
+
+int size_macro_rd_queue();
+
+int  pick_macro_request(request_t * rq);
+
+int equal_request(request_t * req1, request_t * req2);
 // update stats counters
 void gather_stats(int channel);
+
+// to distribute the information of micro instruction toward the macro and ROB
+void update_backward();
 
 // print statistics
 void print_stats();
