@@ -248,7 +248,7 @@ void insertion_policy(cache_t *my_cache, unsigned long long int addr) {
       pri_arr[j].pri = my_cache->tag_array[i].arv_time;
       pri_arr[j].way_index = i;
       //	printf ("[%d %d %llx]",pri_arr[j].pri,pri_arr[j].way_index,
-      //my_cache->tag_array[pri_arr[j].way_index].address);
+      // my_cache->tag_array[pri_arr[j].way_index].address);
       j++;
     }
     // printf ("\n");
@@ -305,7 +305,7 @@ void insertion_policy(cache_t *my_cache, unsigned long long int addr) {
       pri_arr[j].pri = my_cache->tag_array[i].RRPV;
       pri_arr[j].way_index = i;
       //	printf ("[%d %d %llx]",pri_arr[j].pri,pri_arr[j].way_index,
-      //my_cache->tag_array[pri_arr[j].way_index].address);
+      // my_cache->tag_array[pri_arr[j].way_index].address);
       j++;
     }
 

@@ -580,74 +580,82 @@ void micro_req_gen() {
             micr_tmp->picked = 1;
           }
           if (micr_tmp->type == PROOF) {
-            // mac cache ;p
+
             tag_t *mac_fnd = look_up(meta_cache[micr_tmp->thread_id],
                                      micr_tmp->physical_address,
                                      1); ///, micr_tmp->thread_id);
-            if (mac_fnd == NULL) {
-              tag_t *fnd_victimcache =
-                  look_up(victim_cache[micr_tmp->thread_id],
-                          micr_tmp->physical_address, 1);
-              if (fnd_victimcache != NULL) {
-                tag_t *evicted = NULL;
-                evicted = insert_cache(meta_cache[fnd_victimcache->thread_id],
-                                       (fnd_victimcache->address << 6), 0,
-                                       fnd_victimcache->thread_id,
-                                       fnd_victimcache->instruction_id, 1,
-                                       fnd_victimcache->type);
-                if (evicted != NULL && evicted->dirty &&
-                    evicted->valid) { // found, dirty, valid
-                  tag_t *evicted_from_victimcache = NULL;
-                  evicted_from_victimcache = insert_cache(
-                      victim_cache[evicted->thread_id], (evicted->address << 6),
-                      evicted->father_not_update, evicted->thread_id,
-                      evicted->instruction_id, 1, evicted->type);
 
-                  if (evicted_from_victimcache != NULL &&
-                      evicted_from_victimcache->valid != 0 &&
-                      evicted_from_victimcache->dirty != 0) {
-                    if (!write_exists_in_write_queue(
-                            (evicted_from_victimcache->address << 6))) {
-                      insert_write((evicted_from_victimcache->address << 6),
-                                   CYCLE_VAL,
-                                   evicted_from_victimcache->thread_id,
-                                   evicted_from_victimcache->instruction_id);
+            if ((mac_fnd == NULL) && VICTIMCACHE) {
+              tag_t *mac_fnd = look_up(meta_cache[micr_tmp->thread_id],
+                                       micr_tmp->physical_address,
+                                       1); ///, micr_tmp->thread_id);
+              if ((mac_fnd == NULL) && VICTIMCACHE) {
+                tag_t *fnd_victimcache =
+                    look_up(victim_cache[micr_tmp->thread_id],
+                            micr_tmp->physical_address, 1);
+                if (fnd_victimcache != NULL) { // Move to Meta Cache
+                  tag_t *evicted = NULL;
+                  evicted = insert_cache(meta_cache[fnd_victimcache->thread_id],
+                                         (fnd_victimcache->address << 6), 0,
+                                         fnd_victimcache->thread_id,
+                                         fnd_victimcache->instruction_id, 1,
+                                         fnd_victimcache->type);
+                  if (evicted != NULL && evicted->dirty && evicted->valid) {
+                    tag_t *evicted_from_victimcache = NULL;
+                    evicted_from_victimcache = insert_cache(
+                        victim_cache[evicted->thread_id],
+                        (evicted->address << 6), evicted->father_not_update,
+                        evicted->thread_id, evicted->instruction_id, 1,
+                        evicted->type);
+                    if (evicted_from_victimcache != NULL &&
+                        evicted_from_victimcache->valid != 0 &&
+                        evicted_from_victimcache->dirty != 0) {
+                      if (!write_exists_in_write_queue(
+                              evicted_from_victimcache->address << 6)) {
+                        insert_write((evicted_from_victimcache->address << 6),
+                                     CYCLE_VAL,
+                                     evicted_from_victimcache->thread_id,
+                                     evicted_from_victimcache->instruction_id);
+                      }
                     }
+                    if (evicted_from_victimcache != NULL)
+                      free(evicted_from_victimcache);
                   }
-                  if (evicted_from_victimcache != NULL)
-                    free(evicted_from_victimcache);
+                  if (evicted != NULL)
+                    free(evicted);
+                  // Serve from Meta Cache
                   mac_fnd = look_up(meta_cache[micr_tmp->thread_id],
                                     micr_tmp->physical_address, 1);
                 }
-
-                if (mac_fnd == NULL) {
-                  int lat = read_matches_write_or_read_queue(
-                      micr_tmp->physical_address);
-                  if (lat) {
-                    // mergable no need to insert in read queue
-                    micr_tmp->completion_time =
-                        CYCLE_VAL + (long long int)lat + PIPELINEDEPTH;
-                    micr_tmp->request_served = 1;
-                  } else {
-                    insert_read(micr_tmp->physical_address, CYCLE_VAL,
-                                micr_tmp->thread_id, micr_tmp->instruction_id,
-                                micr_tmp->instruction_pc);
-                  }
-                  micr_tmp->picked = 1;
-                } else { // found in the cache no need to get the request!
-                  LL_DELETE(tab->micro_req, micr_tmp);
-                  free(micr_tmp);
-                }
-              } else { // found in the cache no need to get the request!
-                LL_DELETE(tab->micro_req, micr_tmp);
-                free(micr_tmp);
               }
-            } else { // found in the cache no need to get the request!
+            }
+
+            else if (mac_fnd == NULL) {
+              int lat =
+                  read_matches_write_or_read_queue(micr_tmp->physical_address);
+              if (lat) {
+                // mergable no need to insert in read queue
+                micr_tmp->completion_time =
+                    CYCLE_VAL + (long long int)lat + PIPELINEDEPTH;
+                micr_tmp->request_served = 1;
+              } else {
+
+                insert_read(micr_tmp->physical_address, CYCLE_VAL,
+                            micr_tmp->thread_id, micr_tmp->instruction_id,
+                            micr_tmp->instruction_pc);
+              }
+              micr_tmp->picked = 1;
+            } else {
+              /* hit in to the mac cache  */
               LL_DELETE(tab->micro_req, micr_tmp);
               free(micr_tmp);
+              // micr_tmp->request_served = 1;
+              // micr_tmp->picked = 1;
+              // micr_tmp->completion_time =CYCLE_VAL + PIPELINEDEPTH;
             }
           }
-        }
+
+        } // READ
       }
       // else write, dont have yet!
 
@@ -2106,29 +2114,27 @@ float calculate_power(int channel, int rank, int print_stats_type,
   the power dissipated in the rank in question when the reads and
   // 		writes are to other ranks on the channel
 
-          psch_act 						-> Power dissipated
-  by activating a row
-    psch_act_pdn 				-> Power dissipated when CKE is low
-  (disabled) and all banks are precharged
-    psch_act_stby 			-> Power dissipated when CKE is high (enabled)
-  and at least one back is active (row is open) psch_pre_pdn_fast  	-> Power
-  dissipated when CKE is low (disabled) and all banks are precharged and chip is
-  in fast power down
+          psch_act 						-> Power
+  dissipated by activating a row psch_act_pdn 				-> Power
+  dissipated when CKE is low (disabled) and all banks are precharged
+    psch_act_stby 			-> Power dissipated when CKE is high
+  (enabled) and at least one back is active (row is open) psch_pre_pdn_fast ->
+  Power dissipated when CKE is low (disabled) and all banks are precharged and
+  chip is in fast power down
     psch_pre_pdn_slow  	-> Power dissipated when CKE is low (disabled) and all
   banks are precharged and chip is in fast slow  down
-    psch_pre_stby 			-> Power dissipated when CKE is high (enabled)
-  and at least one back is active (row is open) psch_termWoth
+    psch_pre_stby 			-> Power dissipated when CKE is high
+  (enabled) and at least one back is active (row is open) psch_termWoth
   -> Power dissipated when a Write termiantes at the other set of chips.
-    psch_termRoth 			-> Power dissipated when a Read  termiantes at
-  the other set of chips psch_termW 					-> Power
+    psch_termRoth 			-> Power dissipated when a Read  termiantes
+  at the other set of chips psch_termW 					-> Power
   dissipated when a Write termiantes at the set of chips in question psch_dq
   -> Power dissipated when a Read  termiantes at the set of chips in question
   (Data Pins on the chip are called DQ) psch_ref
   -> Power dissipated during Refresh
-    psch_rd 						-> Power dissipated during a Read  (does
-  ot include power to open a row)
-    psch_wr 						-> Power dissipated during a Write (does
-  ot include power to open a row)
+    psch_rd 						-> Power dissipated during a Read
+  (does ot include power to open a row) psch_wr
+  -> Power dissipated during a Write (does ot include power to open a row)
 
   ------------------------------------------------------------*/
 
