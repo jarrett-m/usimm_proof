@@ -328,6 +328,10 @@ void *init_new_node(long long int physical_address, long long int arrival_time,
 
     new_node->request_served = 0;
 
+    new_node->picked = 0;
+
+    new_node->type = DATA;
+
     new_node->instruction_id = instruction_id;
 
     new_node->instruction_pc = instruction_pc;
@@ -405,12 +409,10 @@ int write_exists_in_write_queue(long long int physical_address) {
   return 0;
 }
 
-// Insert a new read to the read queue
-request_t *insert_read(long long int physical_address,
-                       long long int arrival_time, int thread_id,
-                       int instruction_id, long long int instruction_pc) {
-
+//
+request_t *insert_mac_read(long long int physical_address,long long int arrival_time, int thread_id,int instruction_id, long long int instruction_pc){
   optype_t this_op = READ;
+
 
   // get channel info
   dram_address_t *this_addr = calc_dram_addr(physical_address);
@@ -422,7 +424,43 @@ request_t *insert_read(long long int physical_address,
   request_t *new_node =
       init_new_node(physical_address, arrival_time, this_op, thread_id,
                     instruction_id, instruction_pc);
+  new_node->type = PROOF;
+  new_node->picked = 0;
+  LL_APPEND(read_queue_head[channel], new_node);
 
+  read_queue_length[channel]++;
+
+  // UT_MEM_DEBUG("\nCyc: %lld New READ:%lld Core:%d Chan:%d Rank:%d Bank:%d
+  // Row:%lld RD_Q_Length:%lld\n", CYCLE_VAL, new_node->id, new_node->thread_id,
+  // new_node->dram_addr.channel,  new_node->dram_addr.rank,
+  // new_node->dram_addr.bank,  new_node->dram_addr.row,
+  // read_queue_length[channel]);
+
+  return new_node;
+
+}
+
+
+// Insert a new read to the read queue
+request_t *insert_read(long long int physical_address,
+                       long long int arrival_time, int thread_id,
+                       int instruction_id, long long int instruction_pc) {
+
+  optype_t this_op = READ;
+
+
+  // get channel info
+  dram_address_t *this_addr = calc_dram_addr(physical_address);
+  int channel = this_addr->channel;
+  free(this_addr);
+
+  stats_reads_seen[channel]++;
+
+  request_t *new_node =
+      init_new_node(physical_address, arrival_time, this_op, thread_id,
+                    instruction_id, instruction_pc);
+  new_node->type = DATA;
+  new_node->picked = 0;
   LL_APPEND(read_queue_head[channel], new_node);
 
   read_queue_length[channel]++;
@@ -517,152 +555,104 @@ void micro_req_gen() {
 
   // while there is space in the table and there are requests in the read queue
   // add a new table member
-  while ((size_macro_req_table() < MAX_MACRO_REQ) &&
-         size_macro_rd_queue() != 0) {
-    // new table member is created
-    mt_table_t *table_mem = malloc(sizeof(mt_table_t));
-    table_mem->macro_req = malloc(sizeof(request_t));
-    // pick a macro request
-    pick_macro_request(table_mem->macro_req);
-    table_mem->micro_req = NULL;
-    // new table_member is appended
-    LL_APPEND(mt_tab, table_mem);
 
-    if (table_mem->macro_req->operation_type == READ) {
-      // find the MAC address
-      unsigned long long int mac_addr =
-          find_MAC(table_mem->macro_req->physical_address, 0x0, TRACE_CAPACITY);
-      // create a new macro request and set the type to DATA
-      request_t *data_node = init_new_node(
-          table_mem->macro_req->physical_address, CYCLE_VAL,
-          table_mem->macro_req->operation_type, table_mem->macro_req->thread_id,
-          table_mem->macro_req->instruction_id,
-          table_mem->macro_req->instruction_pc);
-      data_node->type = DATA;
-      // read_data_rd++;
-      // FOR THE DATA REQUEST
-      LL_APPEND(table_mem->micro_req, data_node);
+  while ((size_macro_req_table() < MAX_MACRO_REQ) && size_macro_rd_queue() != 0) {
+    if ((size_macro_rd_queue() != 0)) {
 
-      // create a new micro request and set the type to PROOF
-      request_t *mac_node = init_new_node(
-          mac_addr, CYCLE_VAL, table_mem->macro_req->operation_type,
-          table_mem->macro_req->thread_id, table_mem->macro_req->instruction_id,
-          table_mem->macro_req->instruction_pc);
-      mac_node->type = PROOF;
-      // read_mac_rd++;
-      // append the micro request to the table member
-      LL_APPEND(table_mem->micro_req, mac_node);
+      mt_table_t * table_mem = malloc(sizeof(mt_table_t));
+			table_mem->macro_req = malloc(sizeof(request_t));
+
+      int t = pick_macro_request(table_mem->macro_req); 
+      assert (t == 1);
+      table_mem->micro_req = NULL;
+      LL_APPEND(mt_tab, table_mem); 
+
+      if (table_mem->macro_req->operation_type == READ){
+        unsigned long long int MAC_addr =   find_MAC (table_mem->macro_req->physical_address, 0x0, TRACE_CAPACITY);
+        request_t * data_node = init_new_node(table_mem->macro_req->physical_address, CYCLE_VAL, table_mem->macro_req->operation_type, table_mem->macro_req->thread_id,
+														table_mem->macro_req->instruction_id, table_mem->macro_req->instruction_pc); 
+        data_node->type = DATA;	
+        LL_APPEND(table_mem->micro_req, data_node);
+				request_t * mac_node = init_new_node(MAC_addr, CYCLE_VAL, READ, table_mem->macro_req->thread_id,
+																							table_mem->macro_req->instruction_id, table_mem->macro_req->instruction_pc);
+        mac_node->type = PROOF;
+        LL_APPEND(table_mem->micro_req,mac_node);
+      }
     }
-    // write later
   }
-
-  request_t *micr_tmp;
-  mt_table_t *tab; //, * tab_tmp;
-  LL_FOREACH(mt_tab, tab) {
-    if (!tab->macro_req->request_served) {
-      if (tab->macro_req->operation_type == READ) {
-        request_t *tmp = NULL;
-        LL_FOREACH_SAFE(tab->micro_req, micr_tmp, tmp) {
-          if (micr_tmp->picked)
-            continue;
-          if (micr_tmp->type == DATA) {
-            int lat =
-                read_matches_write_or_read_queue(micr_tmp->physical_address);
-            if (lat) {
-              micr_tmp->completion_time =
-                  CYCLE_VAL + (long long int)lat + PIPELINEDEPTH;
+  
+  request_t * micr_tmp;
+  mt_table_t * tab; //, * tab_tmp;
+  LL_FOREACH(mt_tab, tab){
+    if (!tab->macro_req->request_served){
+      if (tab->macro_req->operation_type == READ){
+        request_t * tmp = NULL;
+        LL_FOREACH_SAFE(tab->micro_req, micr_tmp,tmp){
+          if (micr_tmp->picked) continue;
+          if (micr_tmp->type == DATA){
+            int lat = read_matches_write_or_read_queue(micr_tmp->physical_address);
+            if (lat){
+              micr_tmp->completion_time = CYCLE_VAL+(long long int)lat+PIPELINEDEPTH;
               micr_tmp->request_served = 1;
             } else {
-              insert_read(micr_tmp->physical_address, CYCLE_VAL,
-                          micr_tmp->thread_id, micr_tmp->instruction_id,
-                          micr_tmp->instruction_pc);
+              insert_read(micr_tmp->physical_address, CYCLE_VAL, micr_tmp->thread_id , micr_tmp->instruction_id, 
+								                  micr_tmp->instruction_pc);
             }
+
             micr_tmp->picked = 1;
-          }
-          if (micr_tmp->type == PROOF) {
-
-            tag_t *mac_fnd = look_up(meta_cache[micr_tmp->thread_id],
-                                     micr_tmp->physical_address,
-                                     1); ///, micr_tmp->thread_id);
-
-            if ((mac_fnd == NULL) && VICTIMCACHE) {
-              tag_t *mac_fnd = look_up(meta_cache[micr_tmp->thread_id],
-                                       micr_tmp->physical_address,
-                                       1); ///, micr_tmp->thread_id);
-              if ((mac_fnd == NULL) && VICTIMCACHE) {
-                tag_t *fnd_victimcache =
-                    look_up(victim_cache[micr_tmp->thread_id],
-                            micr_tmp->physical_address, 1);
-                if (fnd_victimcache != NULL) { // Move to Meta Cache
-                  tag_t *evicted = NULL;
-                  evicted = insert_cache(meta_cache[fnd_victimcache->thread_id],
-                                         (fnd_victimcache->address << 6), 0,
-                                         fnd_victimcache->thread_id,
-                                         fnd_victimcache->instruction_id, 1,
-                                         fnd_victimcache->type);
-                  if (evicted != NULL && evicted->dirty && evicted->valid) {
-                    tag_t *evicted_from_victimcache = NULL;
-                    evicted_from_victimcache = insert_cache(
-                        victim_cache[evicted->thread_id],
-                        (evicted->address << 6), evicted->father_not_update,
-                        evicted->thread_id, evicted->instruction_id, 1,
-                        evicted->type);
-                    if (evicted_from_victimcache != NULL &&
-                        evicted_from_victimcache->valid != 0 &&
-                        evicted_from_victimcache->dirty != 0) {
-                      if (!write_exists_in_write_queue(
-                              evicted_from_victimcache->address << 6)) {
-                        insert_write((evicted_from_victimcache->address << 6),
-                                     CYCLE_VAL,
-                                     evicted_from_victimcache->thread_id,
-                                     evicted_from_victimcache->instruction_id);
-                      }
-                    }
-                    if (evicted_from_victimcache != NULL)
-                      free(evicted_from_victimcache);
-                  }
-                  if (evicted != NULL)
-                    free(evicted);
-                  // Serve from Meta Cache
-                  mac_fnd = look_up(meta_cache[micr_tmp->thread_id],
-                                    micr_tmp->physical_address, 1);
-                }
-              }
-            }
-
-            else if (mac_fnd == NULL) {
-              int lat =
-                  read_matches_write_or_read_queue(micr_tmp->physical_address);
-              if (lat) {
-                // mergable no need to insert in read queue
-                micr_tmp->completion_time =
-                    CYCLE_VAL + (long long int)lat + PIPELINEDEPTH;
-                micr_tmp->request_served = 1;
+          } else if (micr_tmp->type == PROOF){
+						tag_t * mac_fnd = look_up(meta_cache[micr_tmp->thread_id], micr_tmp->physical_address, 1); ///, micr_tmp->thread_id);
+            if(mac_fnd == NULL){
+              int lat = read_matches_write_or_read_queue(micr_tmp->physical_address);
+              if (lat){
+                micr_tmp->completion_time = CYCLE_VAL+(long long int)lat+PIPELINEDEPTH;
               } else {
-
-                insert_read(micr_tmp->physical_address, CYCLE_VAL,
-                            micr_tmp->thread_id, micr_tmp->instruction_id,
-                            micr_tmp->instruction_pc);
+                insert_mac_read(micr_tmp->physical_address, CYCLE_VAL, micr_tmp->thread_id ,
+                            micr_tmp->instruction_id, micr_tmp->instruction_pc); 
+                micr_tmp->request_served = 1;
               }
+              
               micr_tmp->picked = 1;
             } else {
-              /* hit in to the mac cache  */
-              LL_DELETE(tab->micro_req, micr_tmp);
-              free(micr_tmp);
-              // micr_tmp->request_served = 1;
-              // micr_tmp->picked = 1;
-              // micr_tmp->completion_time =CYCLE_VAL + PIPELINEDEPTH;
-            }
+                micr_tmp->picked = 1;
+                micr_tmp->request_served = 1;
+                micr_tmp->completion_time = CYCLE_VAL+PIPELINEDEPTH;
+                LL_DELETE(tab->micro_req,micr_tmp);
+								free(micr_tmp);
+						}
           }
-
-        } // READ
+        }
       }
-      // else write, dont have yet!
-
-      // WRITE CODE HERE!
     }
   }
 } // micro_req_gen
+
+void update_macro_thread(request_t * request)
+{
+	assert(request->operation_type == READ);
+	// write micro requests do not need to be updated 
+	// with the data of completion time because this 
+	// has already happened at the time of inserting
+	// into read queue 
+	mt_table_t * tab;
+	request_t * micr_tmp;			
+	int found = 0;
+	LL_FOREACH(mt_tab, tab)
+	{
+		LL_FOREACH(tab->micro_req, micr_tmp)
+		{
+			if ((micr_tmp->physical_address == request->physical_address) && (micr_tmp->operation_type == READ)
+														&& (micr_tmp->request_served == 0) && (micr_tmp->picked == 1))
+			{
+				found = 1;
+				micr_tmp->completion_time =  request->completion_time;
+				micr_tmp->request_served = 1;
+				break;
+			}
+		}
+		if (found == 1) break;
+	}
+}
 
 int pick_macro_request(request_t *rq) {
   request_t *rd_ptr = NULL;
@@ -703,7 +693,7 @@ void clean_macro_queues() {
   mt_table_t *table_ptr = NULL;
   mt_table_t *table_tmp = NULL;
   LL_FOREACH_SAFE(mt_tab, table_ptr, table_tmp) {
-    if (table_ptr->macro_req->request_served == 1) {
+    if (table_ptr->macro_req->request_served) {
       LL_DELETE(mt_tab, table_ptr);
 
       LL_FOREACH_SAFE(table_ptr->micro_req, mic, mic_tmp) {
@@ -718,74 +708,98 @@ void clean_macro_queues() {
   // to do, writes?!
 }
 
-void update_backward() {
-  mt_table_t *tab;
-  request_t *micr_req;
-  int done = 1;
-  long long int max_comp = 0;
-  LL_FOREACH(mt_tab, tab) {
-    done = 1;
-    if (tab->micro_req == NULL) {
-      max_comp = tab->macro_req->completion_time;
-      if (tab->macro_req->completion_time == 0)
-        tab->macro_req->completion_time = CYCLE_VAL;
-      // assert(tab->macro_req->completion_time > 0);
-    }
-    // printf ("macro request = %llx \n", tab->macro_req->physical_address);
-    LL_FOREACH(tab->micro_req, micr_req) {
-      // printf ("add = %llx type = %s\n",micr_req->physical_address,
-      // microoptype_Strings[micr_req->type]);
-      if (!micr_req->request_served) {
-        done = 0;
-        break;
-      } else if (micr_req->operation_type == READ) {
-        if (max_comp < micr_req->completion_time)
-          max_comp = micr_req->completion_time;
-      }
-    }
-    if (done == 1) {
-      request_t *rd_req;
-      // means this MACRO instruction is done
-      tab->macro_req->completion_time = max_comp;
-      tab->macro_req->latency =
-          tab->macro_req->completion_time - tab->macro_req->arrival_time;
-      if (tab->macro_req->operation_type == READ) {
-        stats_macro_reads_completed++;
-        stats_average_macro_read_latency =
-            ((stats_macro_reads_completed - 1) *
-                 stats_average_macro_read_latency +
-             tab->macro_req->latency) /
-            stats_macro_reads_completed;
-        ROB[tab->macro_req->thread_id]
-            .comptime[tab->macro_req->instruction_id] =
-            tab->macro_req->completion_time + PIPELINEDEPTH;
-      } else {
-        // write
-        stats_macro_writes_completed++;
-        stats_average_macro_write_latency =
-            ((stats_macro_writes_completed - 1) *
-                 stats_average_macro_write_latency +
-             tab->macro_req->latency) /
-            stats_macro_writes_completed;
-      }
-      tab->macro_req->request_served = 1;
-
-      int find = 0;
-      if (tab->macro_req->operation_type == READ) {
-        LL_FOREACH(macro_read_queue_head, rd_req) {
-          if (equal_request(rd_req, tab->macro_req)) {
-            find = 1;
-            rd_req->request_served = 1;
-            rd_req->completion_time = tab->macro_req->completion_time;
-            break;
-          }
-        }
-        if (find == 1)
-          break;
-      } // READS FOR NOW!!!!
-    }
-  }
-}
+void update_backward()
+{
+	mt_table_t * tab;
+	request_t * micr_req;
+	int done = 1;
+	long long int max_comp = 0;
+	LL_FOREACH(mt_tab, tab)
+	{
+		done = 1;
+		if (tab->micro_req == NULL)
+		{
+			max_comp = tab->macro_req->completion_time;
+			if (tab->macro_req->completion_time == 0)
+				tab->macro_req->completion_time = CYCLE_VAL;
+			//assert(tab->macro_req->completion_time > 0);
+		}
+		//printf ("macro request = %llx \n", tab->macro_req->physical_address);
+		LL_FOREACH(tab->micro_req, micr_req)
+		{
+			//printf ("add = %llx type = %s\n",micr_req->physical_address, microoptype_Strings[micr_req->type]);
+			if (!micr_req->request_served)
+			{
+				done = 0;
+				break;
+			}
+			else if (micr_req->operation_type == READ)
+				 {
+					 if (max_comp < micr_req->completion_time)
+						max_comp = micr_req->completion_time;
+				 }
+			
+		}
+		if (done == 1)
+		{
+			request_t * rd_req, * wr_req;
+			// means this MACRO instruction is done 
+			tab->macro_req->completion_time = max_comp;
+			tab->macro_req->latency = tab->macro_req->completion_time - tab->macro_req->arrival_time;
+			//printf ("tab->macro_req->completion_time = %lld tab->macro_req->arrival_time = %lld \n", tab->macro_req->completion_time,tab->macro_req->arrival_time );
+			if (tab->macro_req->operation_type == READ)
+			{
+				stats_macro_reads_completed ++;
+				stats_average_macro_read_latency = ((stats_macro_reads_completed-1)*stats_average_macro_read_latency + tab->macro_req->latency)/stats_macro_reads_completed;
+					ROB[tab->macro_req->thread_id].comptime[tab->macro_req->instruction_id] = tab->macro_req->completion_time+PIPELINEDEPTH;
+				//printf ("stats_average_macro_read_latency = %f stats_macro_reads_completed =%lld tab->macro_req->latency = %lld\n", stats_average_macro_read_latency, stats_macro_reads_completed, tab->macro_req->latency);
+				//getchar();
+			}
+			else
+			{
+				// write
+				stats_macro_writes_completed ++;
+				stats_average_macro_write_latency = ((stats_macro_writes_completed-1)*stats_average_macro_write_latency + tab->macro_req->latency)/stats_macro_writes_completed; 
+			}
+			tab->macro_req->request_served = 1;
+		
+			//printf ("completion_time = %lld for ROB[%d].comptime[%d]\n", ROB[tab->macro_req->thread_id].comptime[tab->macro_req->instruction_id]
+			//												,tab->macro_req->thread_id,tab->macro_req->instruction_id);
+			// find it in read or write MACRO instruction queue and update its information 
+			int find  = 0;
+			if (tab->macro_req->operation_type == READ)
+			{
+				LL_FOREACH(macro_read_queue_head, rd_req)
+				{
+					if (equal_request(rd_req, tab->macro_req))
+					{
+						find = 1;
+						rd_req->request_served = 1;
+						rd_req->completion_time = tab->macro_req->completion_time;
+						break;
+					}
+				}
+				if (find == 1) break;
+			}
+			else
+			{
+				// LL_FOREACH(macro_write_queue_head, wr_req)
+				// {
+				// 	if (equal_request(wr_req, tab->macro_req))
+				// 	{
+				// 		find = 1;
+				// 		wr_req->request_served = 1;
+				// 		wr_req->completion_time = tab->macro_req->completion_time;
+				// 		break;
+				// 	}
+				// }
+				if (find == 1) break;				
+			}
+			assert (find == 1); // should be found in either macro_write_queue_head or macro_read_queue_head
+		}
+	}
+	
+} 
 
 int size_macro_rd_queue() {
   request_t *rd_ptr;
@@ -1174,6 +1188,27 @@ int issue_request_command(request_t *request) {
     request->latency = request->completion_time - request->arrival_time;
     request->dispatch_time = CYCLE_VAL;
     request->request_served = 1;
+
+    if(request->type == PROOF){
+      //insert into cache
+      tag_t * mac_fnd = look_up(meta_cache[request->thread_id], request->physical_address, 0); //, request->thread_id);
+      if (mac_fnd == NULL){
+        meta_cache_miss_read_return++;
+        tag_t * evicted;
+        evicted = insert_cache(meta_cache[request->thread_id], request->physical_address, 0, request->thread_id, request->instruction_id, 0, request->type);
+        if (evicted != NULL){
+          //write back if dirty
+          if (evicted->dirty && !write_exists_in_write_queue(evicted->address)){
+            insert_write(evicted->address, CYCLE_VAL, evicted->thread_id, evicted->instruction_id);
+          }
+          free(evicted);
+        }
+      } else {
+        meta_cache_hit_read_return++;
+      }
+    }
+
+    update_macro_thread(request); //fuck me
 
     // update the ROB with the completion time
     ROB[request->thread_id].comptime[request->instruction_id] =
@@ -2481,3 +2516,54 @@ float calculate_power(int channel, int rank, int print_stats_type,
 
   return total_rank_power;
 }
+
+
+  //   request_t *micr_tmp;
+  //   mt_table_t *tab; //, * tab_tmp;
+  //   LL_FOREACH(mt_tab, tab) {
+  //     if (!tab->macro_req->request_served) {
+  //       if (tab->macro_req->operation_type == READ) {
+  //         request_t *tmp = NULL;
+  //         LL_FOREACH_SAFE(tab->micro_req, micr_tmp, tmp) {
+  //           if (micr_tmp->picked)
+  //             continue;
+  //           if (micr_tmp->type == DATA) {
+  //             int lat =
+  //                 read_matches_write_or_read_queue(micr_tmp->physical_address);
+  //             if (lat) {
+  //               micr_tmp->completion_time =
+  //                   CYCLE_VAL + (long long int)lat + PIPELINEDEPTH;
+  //               micr_tmp->request_served = 1;
+  //             } else {
+  //               insert_read(micr_tmp->physical_address, CYCLE_VAL,
+  //                           micr_tmp->thread_id, micr_tmp->instruction_id,
+  //                           micr_tmp->instruction_pc);
+  //             }
+  //             micr_tmp->picked = 1;
+  //           }
+  //           else if (micr_tmp->type == PROOF) {
+  //             tag_t * mac_fnd = look_up(meta_cache[micr_tmp->thread_id], micr_tmp->physical_address, 1); ///, micr_tmp->thread_id);
+  //             if (mac_fnd == NULL){
+  //               int lat = read_matches_write_or_read_queue(micr_tmp->physical_address);
+  //               if (!lat){
+  //                 insert_mac_read(micr_tmp->physical_address, CYCLE_VAL,
+  //                             micr_tmp->thread_id, micr_tmp->instruction_id,
+  //                             micr_tmp->instruction_pc);
+  //               } else {
+  //                   micr_tmp->completion_time = CYCLE_VAL+(long long int)lat+PIPELINEDEPTH;
+  //                   micr_tmp->request_served = 1;
+  //               }
+  //               micr_tmp->picked = 1;
+  //             } else {
+  //               micr_tmp->picked = 1;
+	// 							LL_DELETE(tab->micro_req,micr_tmp);
+	// 							free(micr_tmp);
+  //             }
+  //           }
+  //         } 
+  //       }// READ
+  //     // else write, dont have yet!
+  //     // WRITE CODE HERE!
+  //     }
+  //   }
+  // }

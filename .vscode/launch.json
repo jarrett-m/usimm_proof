@@ -9,7 +9,7 @@
             "request": "launch",
             "name": "Debug - Normal",
             "program": "${workspaceFolder}/bin/usimm",
-            "args": ["input/1channel.cfg", "input/freq"],
+            "args": ["input/1channel.cfg", "input/short"],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "Make all"
         },

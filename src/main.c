@@ -252,7 +252,9 @@ int main(int argc, char *argv[]) {
 
   printf("Starting simulation.\n");
   while (!expt_done) {
-
+          if (CYCLE_VAL == 1145249){
+            printf("here\n");
+          }
     /* For each core, retire instructions if they have finished. */
     for (numc = 0; numc < NUMCORES; numc++) {
       num_ret = 0;
