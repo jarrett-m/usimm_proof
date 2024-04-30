@@ -44,6 +44,10 @@
 // mixed of scratch pad and cacche
 #define CACH_PAD 0
 
+// to pick one MACRO request out of MACRO queues
+#define MACRO_HI_WM 40
+#define MACRO_LO_WM 20
+
 // memory capacity which is touched by trace
 // this memory is for pure memory
 // the memory defined here is biger
@@ -230,12 +234,15 @@ long long int stats_num_powerup[MAX_NUM_CHANNELS][MAX_NUM_RANKS];
 // secured policy stuff
 long long int stats_macro_reads_seen;
 long long int macro_read_queue_length;
+long long int macro_write_queue_length;
 long long int num_macro_read_merge_read;
 long long int num_macro_read_merge_write;
 long long int meta_cache_hit_read_return;
 long long int meta_cache_miss_read_return;
 long long int stats_macro_reads_completed;
 long long int stats_macro_writes_completed;
+long long int macro_write_queue_length;
+long long int num_macro_write_merge;
 
 double stats_average_macro_read_latency;
 double stats_average_macro_write_latency;
@@ -247,6 +254,7 @@ typedef struct mt_table {
 } mt_table_t;
 
 request_t *macro_read_queue_head;
+request_t *macro_write_queue_head;
 mt_table_t *mt_tab;
 int size_of_map;
 
@@ -344,6 +352,15 @@ request_t *insert_macro_read(long long int physical_address,
 // insert micro read, SECURED policy
 void clean_macro_queue();
 
+// generate a write request from ROB and enqueue in macro read into macro read
+// queue
+request_t *insert_macro_write(long long int physical_address,
+                              long long int arrival_time, int thread_id,
+                              int instruction_id);
+
+// find if there is a matching macro request in the write queue
+int write_exists_in_write_macro_queue(long long int physical_address);
+
 // find if there is a matching request in the macro read queue
 int read_matches_write_or_read_macro_queue(long long int physical_address);
 
@@ -357,6 +374,8 @@ int size_macro_req_table();
 void clean_macro_queues();
 
 int size_macro_rd_queue();
+
+int size_macro_wr_queue();
 
 int pick_macro_request(request_t *rq);
 

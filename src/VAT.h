@@ -41,11 +41,13 @@ unsigned long long int find_MAC(unsigned long long int addr,
 unsigned long long int num_node_SSGX(unsigned long long int capacity);
 // find the addresses of counter cache lines in ToC
 // int find_counters (unsigned long long int addr, unsigned long long int
-// capacity, 				   unsigned long long int data_start,unsigned long long int *counters
+// capacity, 				   unsigned long long int data_start,unsigned
+// long long int *counters
 //);
 
 // int find_counters_for_counters (unsigned long long int addr, microoptype_t
-// type, unsigned long long int capacity, 				   unsigned long long int
-//data_start,unsigned long long int *counters);
+// type, unsigned long long int capacity, 				   unsigned long
+// long int
+// data_start,unsigned long long int *counters);
 
 #endif //__SGX_H__

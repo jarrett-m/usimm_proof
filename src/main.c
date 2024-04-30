@@ -252,9 +252,9 @@ int main(int argc, char *argv[]) {
 
   printf("Starting simulation.\n");
   while (!expt_done) {
-          if (CYCLE_VAL == 1145249){
-            printf("here\n");
-          }
+    if (CYCLE_VAL % 1000000 == 0) {
+      printf(".");
+    }
     /* For each core, retire instructions if they have finished. */
     for (numc = 0; numc < NUMCORES; numc++) {
       num_ret = 0;
@@ -376,9 +376,14 @@ int main(int argc, char *argv[]) {
                 ROB[numc].optype[ROB[numc].tail] = opertype[numc];
                 ROB[numc].comptime[ROB[numc].tail] = CYCLE_VAL + PIPELINEDEPTH;
                 /* Also, add this to the write queue. */
-
-                if (!write_exists_in_write_queue(addr[numc]))
-                  insert_write(addr[numc], CYCLE_VAL, numc, ROB[numc].tail);
+                if (SECURED) {
+                  if (!write_exists_in_write_macro_queue(addr[numc]))
+                    insert_macro_write(addr[numc], CYCLE_VAL, numc,
+                                       ROB[numc].tail);
+                } else {
+                  if (!write_exists_in_write_queue(addr[numc]))
+                    insert_write(addr[numc], CYCLE_VAL, numc, ROB[numc].tail);
+                }
 
                 for (int c = 0; c < NUM_CHANNELS; c++) {
                   if (write_queue_length[c] == WQ_CAPACITY) {
