@@ -1,0 +1,48 @@
+#bin/bash
+#perl
+perl_base=`cat -v output/non_secure/500.perlbench_r.log | grep "Total Simulation Cycles" | awk '{print $4}'`
+perl_secure=`cat -v output/perl-1 | grep "Total Simulation Cycles" | awk '{print $4}'`
+perl_speedup=`echo "scale=3; $perl_secure / $perl_base" | bc`
+echo "Perlbench slowdown: $perl_speedup"
+
+#omnetpp
+omnetpp_base=`cat -v output/non_secure/520.omnetpp_r.log | grep "Total Simulation Cycles" | awk '{print $4}'`
+omnetpp_secure=`cat -v output/omnet-1 | grep "Total Simulation Cycles" | awk '{print $4}'`
+omnetpp_speedup=`echo "scale=3; $omnetpp_secure / $omnetpp_base" | bc`
+echo "Omnetpp slowdown: $omnetpp_speedup"
+
+#deepsjeng
+deepsjeng_base=`cat -v output/non_secure/531.deepsjeng_r.log | grep "Total Simulation Cycles" | awk '{print $4}'`
+deepsjeng_secure=`cat -v output/deep-1 | grep "Total Simulation Cycles" | awk '{print $4}'`
+deepsjeng_speedup=`echo "scale=3; $deepsjeng_secure / $deepsjeng_base" | bc`
+echo "Deepsjeng slowdown: $deepsjeng_speedup"
+
+#fotonik3d
+fotonik3d_base=`cat -v output/non_secure/549.fotonik3d_r.log | grep "Total Simulation Cycles" | awk '{print $4}'`
+fotonik3d_secure=`cat -v output/fotonik-1 | grep "Total Simulation Cycles" | awk '{print $4}'`
+fotonik3d_speedup=`echo "scale=3; $fotonik3d_secure / $fotonik3d_base" | bc`
+echo "Fotonik3d slowdown: $fotonik3d_speedup"
+
+#gcc_s
+gcc_s_base=`cat -v output/non_secure/602.gcc_s.log | grep "Total Simulation Cycles" | awk '{print $4}'`
+gcc_s_secure=`cat -v output/gcc-1 | grep "Total Simulation Cycles" | awk '{print $4}'`
+gcc_s_speedup=`echo "scale=3; $gcc_s_secure / $gcc_s_base" | bc`
+echo "Gcc_s slowdown: $gcc_s_speedup"
+
+#607 cactuBSSN
+cactuBSSN_base=`cat -v output/non_secure/607.cactuBSSN_s.log | grep "Total Simulation Cycles" | awk '{print $4}'`
+cactuBSSN_secure=`cat -v output/cactu-1 | grep "Total Simulation Cycles" | awk '{print $4}'`
+cactuBSSN_speedup=`echo "scale=3; $cactuBSSN_secure / $cactuBSSN_base" | bc`
+echo "CactuBSSN slowdown: $cactuBSSN_speedup"
+
+#619 lbm
+lbm_base=`cat -v output/non_secure/619.lbm_s.log | grep "Total Simulation Cycles" | awk '{print $4}'`
+lbm_secure=`cat -v output/lbm-1 | grep "Total Simulation Cycles" | awk '{print $4}'`
+lbm_speedup=`echo "scale=3; $lbm_secure / $lbm_base" | bc`
+echo "Lbm slowdown: $lbm_speedup"
+
+#657 xz
+xz_base=`cat -v output/non_secure/657.xz_s.log | grep "Total Simulation Cycles" | awk '{print $4}'`
+xz_secure=`cat -v output/xz-1 | grep "Total Simulation Cycles" | awk '{print $4}'`
+xz_speedup=`echo "scale=3; $xz_secure / $xz_base" | bc`
+echo "Xz slowdown: $xz_speedup"

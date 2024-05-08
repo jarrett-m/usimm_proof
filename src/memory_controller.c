@@ -796,6 +796,7 @@ void micro_req_gen() {
               micr_tmp->picked = 1;
             } else {
               micr_tmp->picked = 1;
+              micr_tmp->dirty = 0;
               micr_tmp->request_served = 1;
               micr_tmp->completion_time = CYCLE_VAL + PIPELINEDEPTH;
               LL_DELETE(tab->micro_req, micr_tmp);
@@ -811,7 +812,7 @@ void micro_req_gen() {
           if (micr_tmp->picked)
             continue;
           if (micr_tmp->type == DATA) {
-            if (!write_exists_in_write_queue(micr_tmp->physical_address, PROOF)) {
+            if (!write_exists_in_write_queue(micr_tmp->physical_address, DATA)) {
               insert_write(micr_tmp->physical_address, CYCLE_VAL,
                            micr_tmp->thread_id, micr_tmp->instruction_id);
             } else {
@@ -837,10 +838,10 @@ void micro_req_gen() {
                             micr_tmp->instruction_pc, 1, 1);
               }
               micr_tmp->picked = 1;
+              micr_tmp->dirty = 1;
             } else {
               micr_tmp->picked = 1;
               micr_tmp->request_served = 1;
-              mac_fnd->dirty = 1;
               micr_tmp->completion_time = CYCLE_VAL + PIPELINEDEPTH;
               LL_DELETE(tab->micro_req, micr_tmp);
               free(micr_tmp);
@@ -1482,8 +1483,8 @@ int issue_request_command(request_t *request) {
         if (evicted != NULL) {
           // write back if dirty
           if (evicted->dirty &&
-              !write_exists_in_write_queue(evicted->address << 6, evicted->type)) {
-            insert_write(evicted->address << 6, CYCLE_VAL, evicted->thread_id,
+              !write_exists_in_write_queue(evicted->address, evicted->type)) {
+            insert_write(evicted->address, CYCLE_VAL, evicted->thread_id,
                          evicted->instruction_id);
           }
           free(evicted);
