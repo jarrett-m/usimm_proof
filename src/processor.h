@@ -10,6 +10,7 @@ struct robstructure {
   int *optype;
   long long int *instrpc;
   int tracedone;
+  long long int length;
 };
 
 #endif //__PROCESSOR_H__

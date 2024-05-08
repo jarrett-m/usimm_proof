@@ -7,6 +7,8 @@
 #define MAX_NUM_BANKS 32
 #define MAX_NUMCORES 8
 
+#define FR_FCFS 1
+#define NUM_INST 2000000
 #define RRIP_N 32
 #define SECURED 1
 #define MAC 1
@@ -37,8 +39,8 @@
 
 // cache for counters
 // HASH CACHE
-#define CNT_SET 8
-#define CNT_WAY 8
+#define CNT_SET 128
+#define CNT_WAY 4
 #define CNT_OFFSET 64
 
 // mixed of scratch pad and cacche
@@ -115,6 +117,7 @@ typedef struct req {
   struct req *next;
   microoptype_t type; // data or proof
   int picked;         // 0 if not picked, 1 if picked
+  int dirty;          // 0 if not dirty, 1 if dirty
 } request_t;
 
 // Bankstates
@@ -140,6 +143,8 @@ typedef struct bnk {
   long long int next_powerup;
   long long int next_refresh;
 } bank_t;
+
+long long int num_instructions[MAX_NUMCORES];
 
 // contains the states of all banks in the system
 bank_t dram_state[MAX_NUM_CHANNELS][MAX_NUM_RANKS][MAX_NUM_BANKS];
@@ -243,7 +248,12 @@ long long int stats_macro_reads_completed;
 long long int stats_macro_writes_completed;
 long long int macro_write_queue_length;
 long long int num_macro_write_merge;
-
+long long int data_read_match_write;
+long long int mac_read_match_write;
+long long int data_read_match_read;
+long long int mac_read_match_read;
+long long int data_write_match_write;
+long long int mac_write_match_write;
 double stats_average_macro_read_latency;
 double stats_average_macro_write_latency;
 
@@ -329,10 +339,12 @@ int issue_refresh_command(int channel, int rank);
 int issue_autoprecharge(int channel, int rank, int bank);
 
 // find if there is a matching write request
-int read_matches_write_or_read_queue(long long int physical_address);
+int read_matches_write_or_read_queue(long long int physical_address,
+                                     microoptype_t type, int wr_fwd_rd);
 
 // find if there is a matching request in the write queue
-int write_exists_in_write_queue(long long int physical_address);
+int write_exists_in_write_queue(long long int physical_address,
+                                microoptype_t type);
 
 // enqueue a read into the corresponding read queue (returns ptr to new node)
 request_t *insert_read(long long int physical_address,

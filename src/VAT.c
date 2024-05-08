@@ -108,11 +108,11 @@ unsigned long long int num_node_SSGX(unsigned long long int capacity) {
 void region(unsigned long long int capacity, unsigned long long int data_start,
             unsigned long long int *mac_start) {
   // ___________________
-  //|     		     |
-  //|		data 		 |
+  //|     		         |
+  //|		data 		       |
   //|__________________|
   //|                  |
-  //|		MAC			 |
+  //|		MAC			       |
   //|__________________|
 
   // the number of cache line of data where trace is touching

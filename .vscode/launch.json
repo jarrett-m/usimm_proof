@@ -9,7 +9,7 @@
             "request": "launch",
             "name": "Debug - Normal",
             "program": "${workspaceFolder}/bin/usimm",
-            "args": ["input/1channel.cfg", "input/short"],
+            "args": ["input/1channel.cfg", "input/602.gcc_s/core_0", "input/602.gcc_s/core_1", "input/602.gcc_s/core_2", "input/602.gcc_s/core_3"],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "Make all"
         },
