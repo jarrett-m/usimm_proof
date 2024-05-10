@@ -549,8 +549,6 @@ int colBitWidth = log_base2(NUM_COLUMNS);*/
 			  { /* Input trace is done.  Check to see if all inflight instrs have finished. */
 						if ((ROB[numc].inflight == 0)  || (num_instructions[numc] > NUM_INST))
 						{
-							//printf ("%lld | numc = %d is done ", CYCLE_VAL, numc);
-
 							num_done++;
 							if (!time_done[numc]) time_done[numc] = CYCLE_VAL;
 						}
