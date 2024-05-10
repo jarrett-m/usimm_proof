@@ -50,6 +50,8 @@
 #define MACRO_HI_WM 40
 #define MACRO_LO_WM 20
 
+#define MAX_PROOF_QUEUE 1024
+#define PROOF_UPDATE_CYCLE 128
 // memory capacity which is touched by trace
 // this memory is for pure memory
 // the memory defined here is biger
@@ -57,7 +59,6 @@
 // and counters as well
 #define TRACE_CAPACITY (long long int)32 * 1024 * 1024 * 1024
 #define MAX_MACRO_REQ 300
-
 // Moved here from main.c
 long long int *committed; // total committed instructions in each core
 long long int *fetched;   // total fetched instructions in each core
@@ -256,6 +257,13 @@ long long int data_write_match_write;
 long long int mac_write_match_write;
 double stats_average_macro_read_latency;
 double stats_average_macro_write_latency;
+
+request_t *update_proof_queue[MAX_NUM_CHANNELS][MAX_NUM_RANKS][MAX_NUM_BANKS];
+int is_refresh_allowed_bank(int channel, int rank, int bank);
+int proof_queue_full(int channel, int rank, int bank);
+void check_to_issue_proof_flush();
+int issue_proof_flush(int channel, int rank, int bank);
+long long int last_proof_update[MAX_NUM_CHANNELS][MAX_NUM_RANKS][MAX_NUM_BANKS];
 
 typedef struct mt_table {
   request_t *macro_req;

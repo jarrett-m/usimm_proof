@@ -147,15 +147,18 @@ int main(int argc, char *argv[]) {
   // if (NUM_CHANNELS == 1 && NUMCORES == 1) {
   //   vi_file = fopen("input/1Gb_x4.vi", "r");
   //   chips_per_rank = 16;
-  //   printf("Reading vi file: 1Gb_x4.vi\t\n%d Chips per Rank\n", chips_per_rank);
+  //   printf("Reading vi file: 1Gb_x4.vi\t\n%d Chips per Rank\n",
+  //   chips_per_rank);
   // } else if (NUM_CHANNELS == 1 && NUMCORES == 2) {
   //   vi_file = fopen("input/2Gb_x4.vi", "r");
   //   chips_per_rank = 16;
-  //   printf("Reading vi file: 2Gb_x4.vi\t\n%d Chips per Rank\n", chips_per_rank);
+  //   printf("Reading vi file: 2Gb_x4.vi\t\n%d Chips per Rank\n",
+  //   chips_per_rank);
   // } else if (NUM_CHANNELS == 1 && (NUMCORES > 2) && (NUMCORES <= 4)) {
   //   vi_file = fopen("input/4Gb_x4.vi", "r");
   //   chips_per_rank = 16;
-  //   printf("Reading vi file: 4Gb_x4.vi\t\n%d Chips per Rank\n", chips_per_rank);
+  //   printf("Reading vi file: 4Gb_x4.vi\t\n%d Chips per Rank\n",
+  //   chips_per_rank);
   // } else if (NUM_CHANNELS == 4 && NUMCORES == 1) {
   //   vi_file = fopen("input/1Gb_x16.vi", "r");
   //   chips_per_rank = 4;
@@ -164,25 +167,29 @@ int main(int argc, char *argv[]) {
   // } else if (NUM_CHANNELS == 4 && NUMCORES == 2) {
   //   vi_file = fopen("input/1Gb_x8.vi", "r");
   //   chips_per_rank = 8;
-  //   printf("Reading vi file: 1Gb_x8.vi\t\n%d Chips per Rank\n", chips_per_rank);
+  //   printf("Reading vi file: 1Gb_x8.vi\t\n%d Chips per Rank\n",
+  //   chips_per_rank);
   // } else if (NUM_CHANNELS == 4 && (NUMCORES > 2) && (NUMCORES <= 4)) {
   //   vi_file = fopen("input/2Gb_x8.vi", "r");
   //   chips_per_rank = 8;
-  //   printf("Reading vi file: 2Gb_x8.vi\t\n%d Chips per Rank\n", chips_per_rank);
+  //   printf("Reading vi file: 2Gb_x8.vi\t\n%d Chips per Rank\n",
+  //   chips_per_rank);
   // } else if (NUM_CHANNELS == 4 && (NUMCORES > 4) && (NUMCORES <= 8)) {
   //   vi_file = fopen("input/4Gb_x8.vi", "r");
   //   chips_per_rank = 8;
-  //   printf("Reading vi file: 4Gb_x8.vi\t\n%d Chips per Rank\n", chips_per_rank);
+  //   printf("Reading vi file: 4Gb_x8.vi\t\n%d Chips per Rank\n",
+  //   chips_per_rank);
   // } else if (NUM_CHANNELS == 4 && (NUMCORES > 8) && (NUMCORES <= 16)) {
   //   vi_file = fopen("input/4Gb_x4.vi", "r");
   //   chips_per_rank = 16;
-  //   printf("Reading vi file: 4Gb_x4.vi\t\n%d Chips per Rank\n", chips_per_rank);
+  //   printf("Reading vi file: 4Gb_x4.vi\t\n%d Chips per Rank\n",
+  //   chips_per_rank);
   // } else {
   //   printf("PANIC:: Channel - Core configuration not supported\n");
   //   assert(-1);
   // }
   vi_file = fopen("input/1Gb_x1.vi", "r");
-	chips_per_rank= 16;
+  chips_per_rank = 16;
 
   if (!vi_file) {
     printf("Missing DRAM chip parameter file.  Quitting. \n");
@@ -239,7 +246,8 @@ int main(int argc, char *argv[]) {
             }
           } else {
             printf("Panic.  Poor trace format.\n");
-            printf("last item read was %d %c\n", nonmemops[numc], opertype[numc]);
+            printf("last item read was %d %c\n", nonmemops[numc],
+                   opertype[numc]);
             return -2;
           }
         }
@@ -420,8 +428,9 @@ int main(int argc, char *argv[]) {
                              &opertype[numc], &addr[numc],
                              &instrpc[numc]) < 1) {
                     printf("Panic.  Poor trace format.\n");
-                    printf("last item read was %d %c %Lx %Lx\n", nonmemops[numc],
-                           opertype[numc], addr[numc], instrpc[numc]);
+                    printf("last item read was %d %c %Lx %Lx\n",
+                           nonmemops[numc], opertype[numc], addr[numc],
+                           instrpc[numc]);
                     return -4;
                   }
                 } else {
@@ -442,12 +451,12 @@ int main(int argc, char *argv[]) {
                 }
               } else {
                 // printf("Panic.  Poor trace format.\n");
-                // printf("last item read was %d %c\n", nonmemops[numc], opertype[numc]);
-                // return -1;
+                // printf("last item read was %d %c\n", nonmemops[numc],
+                // opertype[numc]); return -1;
                 if (ROB[numc].inflight == 0) {
-                num_done++;
-                if (!time_done[numc])
-                  time_done[numc] = CYCLE_VAL;
+                  num_done++;
+                  if (!time_done[numc])
+                    time_done[numc] = CYCLE_VAL;
                 }
                 ROB[numc].tracedone = 1;
                 break; /* Break out of the while loop fetching instructions. */
@@ -497,7 +506,7 @@ int main(int argc, char *argv[]) {
     //  ROB[numc].comptime[ROB[numc].head], ROB[numc].optype[ROB[numc].head],
     //  ROB[numc].mem_address[ROB[numc].head], ROB[numc].tracedone);
     //}
-    if (SECURED == 1){
+    if (SECURED == 1) {
       micro_req_gen();
       update_backward();
       clean_macro_queues();
