@@ -50,7 +50,7 @@
 #define MACRO_HI_WM 40
 #define MACRO_LO_WM 20
 
-#define MAX_PROOF_QUEUE 1024
+#define MAX_PROOF_QUEUE 128
 #define PROOF_UPDATE_CYCLE 128
 // memory capacity which is touched by trace
 // this memory is for pure memory

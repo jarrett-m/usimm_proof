@@ -792,6 +792,7 @@ void micro_req_gen() {
                                           [micr_tmp->dram_addr.bank],
                         new_node);
               micr_tmp->picked = 1;
+              micr_tmp->request_served = 1;
             }
           }
         }
@@ -837,7 +838,19 @@ void update_macro_thread(request_t *request) {
   assert(found == 1);
 }
 
-int issue_proof_flush(int channel, int rank, int bank){
+int issue_proof_flush(int channel, int rank, int b){
+    dram_state[channel][rank][b].state = REFRESHING;
+    dram_state[channel][rank][b].active_row = -1;
+    long long int temp = CYCLE_VAL + 1 * T_REFI; //1 cos we are only refreshing one bank.
+    
+    dram_state[channel][rank][b].next_act = temp;
+    dram_state[channel][rank][b].next_pre = temp;
+    dram_state[channel][rank][b].next_refresh = temp;
+    dram_state[channel][rank][b].next_powerdown = temp;
+    return 1;
+}
+
+/*int issue_proof_flush(int channel, int rank, int bank){
   if (!is_refresh_allowed_bank(channel, rank, bank)) {
     // printf("PANIC : SCHED_ERROR: REFRESH command not issuable in cycle:%lld\n",
     //        CYCLE_VAL);
@@ -912,14 +925,14 @@ int issue_proof_flush(int channel, int rank, int bank){
   last_proof_update[channel][rank][bank] = CYCLE_VAL;
   }
   return 1;
-}
+}*/
 
 void empty_proof_queue(int channel, int rank, int bank){
   //set request served and next command to COL_WRITE_CMD and completion time
   request_t *temp;
-  LL_FOREACH(update_proof_queue[channel][rank][bank], temp){
-    update_macro_thread(temp);
-  }
+  // LL_FOREACH(update_proof_queue[channel][rank][bank], temp){
+  //   update_macro_thread(temp);
+  // }
 
   request_t *safe;
   LL_FOREACH_SAFE(update_proof_queue[channel][rank][bank], temp, safe){
@@ -941,12 +954,10 @@ int proof_time_passed(int channel, int rank, int bank){
 void check_to_issue_proof_flush(){
   for(int i = 0; i < NUM_CHANNELS; i++){
     for(int j = 0; j < NUM_RANKS; j++){
-      for(int k = 0; k < NUM_BANKS; k++){
-        
-        if(proof_queue_full(i, j, k) || proof_time_passed(i, j, k)){
-          if (issue_proof_flush(i, j, k)){
+      for(int k = 0; k < NUM_BANKS; k++){       
+        if(proof_queue_full(i, j, k) /*|| proof_time_passed(i, j, k)*/){
+            issue_proof_flush(i, j, k);
             empty_proof_queue(i, j, k);
-          }
         }
       }
     }
@@ -2442,10 +2453,8 @@ void update_memory() {
         // refresh_issue_deadline
         num_issued_refreshes[channel][rank] = 0;
         last_refresh_completion_deadline[channel][rank] = CYCLE_VAL;
-        next_refresh_completion_deadline[channel][rank] =
-            CYCLE_VAL + 8 * T_REFI;
-        refresh_issue_deadline[channel][rank] =
-            next_refresh_completion_deadline[channel][rank] - T_RP - 8 * T_RFC;
+        next_refresh_completion_deadline[channel][rank] = CYCLE_VAL + 8 * T_REFI;
+        refresh_issue_deadline[channel][rank] = next_refresh_completion_deadline[channel][rank] - T_RP - 8 * T_RFC;
         forced_refresh_mode_on[channel][rank] = 0;
         issued_forced_refresh_commands[channel][rank] = 0;
       } else if ((CYCLE_VAL == refresh_issue_deadline[channel][rank]) &&
@@ -2475,6 +2484,8 @@ void update_memory() {
     clean_queues(channel);
   }
 }
+
+// void_update_memory(){}
 
 //------------------------------------------------------------
 // Calculate Power: It calculates and returns average power used by every Rank

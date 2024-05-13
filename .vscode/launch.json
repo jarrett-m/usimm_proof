@@ -9,7 +9,7 @@
             "request": "launch",
             "name": "Debug - Normal",
             "program": "${workspaceFolder}/bin/usimm",
-            "args": ["input/1channel.cfg", "input/602.gcc_s/core_0", "input/602.gcc_s/core_1", "input/602.gcc_s/core_2", "input/602.gcc_s/core_3"],
+            "args": ["/home/sarab/WorkingDirectory/Simulators/Replacement_policy/usimminput/sarab_64kBMeta.cfg", "/uusoc/scratch/res/arch/students/meysam/cpu2017/four-core-traces/final/SPEC2017/520.omnetpp_r/core_0", "/uusoc/scratch/res/arch/students/meysam/cpu2017/four-core-traces/final/SPEC2017/520.omnetpp_r/core_1", "/uusoc/scratch/res/arch/students/meysam/cpu2017/four-core-traces/final/SPEC2017/520.omnetpp_r/core_2", "/uusoc/scratch/res/arch/students/meysam/cpu2017/four-core-traces/final/SPEC2017/520.omnetpp_r/core_3"],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "Make all"
         },
