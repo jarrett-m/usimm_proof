@@ -777,23 +777,30 @@ void micro_req_gen() {
             micr_tmp->picked = 1;
             micr_tmp->request_served = 1;
           } else if (micr_tmp->type == PROOF) {
-            if (proof_queue_full(micr_tmp->dram_addr.channel,
-                                 micr_tmp->dram_addr.rank,
-                                 micr_tmp->dram_addr.bank)) {
-              continue;
+            tag_t *mac_fnd = look_up(meta_cache[micr_tmp->thread_id],
+                                     micr_tmp->physical_address,
+                                     1); ///, micr_tmp->thread_id);
+            if (mac_fnd == NULL) {
+              int lat =
+                  read_matches_write_or_read_queue(micr_tmp->physical_address, PROOF, 0);
+              if (lat) {
+                micr_tmp->completion_time =
+                    CYCLE_VAL + (long long int)lat + PIPELINEDEPTH;
+                    micr_tmp->request_served = 1;
+              } else {
+                insert_mac_read(micr_tmp->physical_address, CYCLE_VAL,
+                            micr_tmp->thread_id, micr_tmp->instruction_id,
+                            micr_tmp->instruction_pc, 1, 1);
+              }
+              micr_tmp->picked = 1;
+              micr_tmp->dirty = 1;
             } else {
-              request_t *new_node = init_new_node(
-                  micr_tmp->physical_address, CYCLE_VAL, WRITE,
-                  micr_tmp->thread_id, micr_tmp->instruction_id, 0);
-              new_node->type = PROOF;
-
-              LL_APPEND(update_proof_queue[micr_tmp->dram_addr.channel]
-                                          [micr_tmp->dram_addr.rank]
-                                          [micr_tmp->dram_addr.bank],
-                        new_node);
               micr_tmp->picked = 1;
               micr_tmp->request_served = 1;
-            }
+              micr_tmp->completion_time = CYCLE_VAL + PIPELINEDEPTH;
+              LL_DELETE(tab->micro_req, micr_tmp);
+              free(micr_tmp);
+             }
           }
         }
       }
@@ -813,6 +820,8 @@ int proof_queue_full(int channel, int rank, int bank) {
 }
 
 void update_macro_thread(request_t *request) {
+  	assert(request->operation_type == READ);
+
   //assert(request->operation_type == READ);
   // write micro requests do not need to be updated
   // with the data of completion time because this
@@ -824,7 +833,6 @@ void update_macro_thread(request_t *request) {
   LL_FOREACH(mt_tab, tab) {
     LL_FOREACH(tab->micro_req, micr_tmp) {
       if ((micr_tmp->physical_address == request->physical_address) &&
-          ((micr_tmp->type == PROOF)||(micr_tmp->operation_type == READ)) &&
           (micr_tmp->request_served == 0) && (micr_tmp->picked == 1)) {
         found = 1;
         micr_tmp->completion_time = request->completion_time;
@@ -841,7 +849,7 @@ void update_macro_thread(request_t *request) {
 int issue_proof_flush(int channel, int rank, int b){
     dram_state[channel][rank][b].state = REFRESHING;
     dram_state[channel][rank][b].active_row = -1;
-    long long int temp = CYCLE_VAL + 1 * T_REFI; //1 cos we are only refreshing one bank.
+    long long int temp = CYCLE_VAL + T_RP + T_RFC;
     
     dram_state[channel][rank][b].next_act = temp;
     dram_state[channel][rank][b].next_pre = temp;
@@ -850,98 +858,16 @@ int issue_proof_flush(int channel, int rank, int b){
     return 1;
 }
 
-/*int issue_proof_flush(int channel, int rank, int bank){
-  if (!is_refresh_allowed_bank(channel, rank, bank)) {
-    // printf("PANIC : SCHED_ERROR: REFRESH command not issuable in cycle:%lld\n",
-    //        CYCLE_VAL);
-    return 0;
-  } else {
-  long long int cycle = CYCLE_VAL;
-
-  if (dram_state[channel][rank][bank].state == PRECHARGE_POWER_DOWN_SLOW) {
-      dram_state[channel][rank][bank].next_act = max(
-          cycle + T_XP_DLL + T_RFC, dram_state[channel][rank][bank].next_act);
-      dram_state[channel][rank][bank].next_pre = max(
-          cycle + T_XP_DLL + T_RFC, dram_state[channel][rank][bank].next_pre);
-      dram_state[channel][rank][bank].next_refresh =
-          max(cycle + T_XP_DLL + T_RFC,
-              dram_state[channel][rank][bank].next_refresh);
-      dram_state[channel][rank][bank].next_powerdown =
-          max(cycle + T_XP_DLL + T_RFC,
-              dram_state[channel][rank][bank].next_powerdown);
-  } else if (dram_state[channel][rank][bank].state ==
-              PRECHARGE_POWER_DOWN_FAST) {
-      dram_state[channel][rank][bank].next_act =
-          max(cycle + T_XP + T_RFC, dram_state[channel][rank][bank].next_act);
-      dram_state[channel][rank][bank].next_pre =
-          max(cycle + T_XP + T_RFC, dram_state[channel][rank][bank].next_pre);
-      dram_state[channel][rank][bank].next_refresh = max(
-          cycle + T_XP + T_RFC, dram_state[channel][rank][bank].next_refresh);
-      dram_state[channel][rank][bank].next_powerdown = max(
-          cycle + T_XP + T_RFC, dram_state[channel][rank][bank].next_powerdown);
-  } else if (dram_state[channel][rank][bank].state == ACTIVE_POWER_DOWN) {
-      dram_state[channel][rank][bank].next_act = max(
-          cycle + T_XP + T_RP + T_RFC, dram_state[channel][rank][bank].next_act);
-      dram_state[channel][rank][bank].next_pre = max(
-          cycle + T_XP + T_RP + T_RFC, dram_state[channel][rank][bank].next_pre);
-      dram_state[channel][rank][bank].next_refresh =
-          max(cycle + T_XP + T_RP + T_RFC,
-              dram_state[channel][rank][bank].next_refresh);
-      dram_state[channel][rank][bank].next_powerdown =
-          max(cycle + T_XP + T_RP + T_RFC,
-              dram_state[channel][rank][bank].next_powerdown);
-  } else // rank powered up
-  {
-    int flag = 0;
-    if (dram_state[channel][rank][bank].state == ROW_ACTIVE) {
-      flag = 1;
-    }
-    if (flag) // at least a single bank is open
-    {
-        dram_state[channel][rank][bank].next_act =
-            max(cycle + T_RP + T_RFC, dram_state[channel][rank][bank].next_act);
-        dram_state[channel][rank][bank].next_pre =
-            max(cycle + T_RP + T_RFC, dram_state[channel][rank][bank].next_pre);
-        dram_state[channel][rank][bank].next_refresh = max(
-            cycle + T_RP + T_RFC, dram_state[channel][rank][bank].next_refresh);
-        dram_state[channel][rank][bank].next_powerdown =
-            max(cycle + T_RP + T_RFC,
-                dram_state[channel][rank][bank].next_powerdown);
-    } else // everything precharged
-    {
-        dram_state[channel][rank][bank].next_act =
-            max(cycle + T_RFC, dram_state[channel][rank][bank].next_act);
-        dram_state[channel][rank][bank].next_pre =
-            max(cycle + T_RFC, dram_state[channel][rank][bank].next_pre);
-        dram_state[channel][rank][bank].next_refresh =
-            max(cycle + T_RFC, dram_state[channel][rank][bank].next_refresh);
-        dram_state[channel][rank][bank].next_powerdown =
-            max(cycle + T_RFC, dram_state[channel][rank][bank].next_powerdown);
-    }
-  }
-  dram_state[channel][rank][bank].active_row = -1;
-  dram_state[channel][rank][bank].state = REFRESHING;
-  command_issued_current_cycle[channel] = 1;
-  last_proof_update[channel][rank][bank] = CYCLE_VAL;
-  }
-  return 1;
-}*/
 
 void empty_proof_queue(int channel, int rank, int bank){
   //set request served and next command to COL_WRITE_CMD and completion time
   request_t *temp;
-  // LL_FOREACH(update_proof_queue[channel][rank][bank], temp){
-  //   update_macro_thread(temp);
-  // }
-
   request_t *safe;
   LL_FOREACH_SAFE(update_proof_queue[channel][rank][bank], temp, safe){
     LL_DELETE(update_proof_queue[channel][rank][bank], temp);
     free(temp);
     temp = NULL;
   }
-
-  //g
 }
 
 int proof_time_passed(int channel, int rank, int bank){
@@ -952,16 +878,16 @@ int proof_time_passed(int channel, int rank, int bank){
 }
 
 void check_to_issue_proof_flush(){
-  for(int i = 0; i < NUM_CHANNELS; i++){
-    for(int j = 0; j < NUM_RANKS; j++){
-      for(int k = 0; k < NUM_BANKS; k++){       
-        if(proof_queue_full(i, j, k) /*|| proof_time_passed(i, j, k)*/){
-            issue_proof_flush(i, j, k);
-            empty_proof_queue(i, j, k);
-        }
-      }
-    }
-  }
+  // for(int i = 0; i < NUM_CHANNELS; i++){
+  //   for(int j = 0; j < NUM_RANKS; j++){
+  //     for(int k = 0; k < NUM_BANKS; k++){       
+  //       if(proof_queue_full(i, j, k) /*|| proof_time_passed(i, j, k)*/){
+  //           issue_proof_flush(i, j, k);
+  //           empty_proof_queue(i, j, k);
+  //       }
+  //     }
+  //   }
+  // }
 }
 
 int pick_macro_request(request_t *reqst) {
@@ -1130,19 +1056,6 @@ void update_backward() {
         }
         if (find == 1)
           break;
-        // LL_FOREACH(update_proof_queue[tab->macro_req->dram_addr.channel]
-        //                              [tab->macro_req->dram_addr.rank]
-        //                              [tab->macro_req->dram_addr.bank],
-        //            wr_req) {
-        //   if (equal_request(wr_req, tab->macro_req)) {
-        //     find = 1;
-        //     wr_req->request_served = 1;
-        //     wr_req->completion_time = tab->macro_req->completion_time;
-        //     break;
-        //   }
-        // }
-        // if (find == 1)
-        //   break;
       }
       assert(find == 1); // should be found in either macro_write_queue_head or
                          // macro_read_queue_head
@@ -1561,10 +1474,24 @@ int issue_request_command(request_t *request) {
                                request->type);
         if (evicted != NULL) {
           // write back if dirty
-          if (evicted->dirty &&
-              !write_exists_in_write_queue(evicted->address, evicted->type)) {
-            insert_write(evicted->address, CYCLE_VAL, evicted->thread_id,
-                         evicted->instruction_id);
+          if (evicted->dirty){
+            request_t *new_node = init_new_node(evicted->address, CYCLE_VAL, 
+                                                WRITE, evicted->thread_id,
+                                                evicted->instruction_id, 0);
+
+            LL_APPEND(update_proof_queue[new_node->dram_addr.channel]
+                            [new_node->dram_addr.rank]
+                            [new_node->dram_addr.bank], new_node);
+
+            int i = new_node->dram_addr.channel;
+            int j = new_node->dram_addr.rank;
+            int k = new_node->dram_addr.bank;
+
+            if(proof_queue_full(i, j, k)){
+                issue_proof_flush(i, j, k);
+                empty_proof_queue(i, j, k);
+            }
+
           }
           free(evicted);
         }

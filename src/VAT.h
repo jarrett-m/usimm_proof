@@ -6,7 +6,7 @@
 #define HASH_VALUE_SIZE                                                        \
   4 // HASH_VALUE_SIZE hash values can be fit into one cache line
 #define PAGE_SIZE 64 // number of cache line
-#define MAC_SIZE 8   // number of MAC in one cache line
+#define MAC_SIZE 2   // number of MAC in one cache line
 #define HASH_SIZE 8  // number of hash in one cache line
 #define CNT_1st_SIZE                                                           \
   64 // number of counter per cache line in first level of ToC
