@@ -115,6 +115,8 @@ void init_memory_controller_vars() {
 
         update_proof_queue[i][j][k] = NULL;
         last_proof_update[i][j][k] = 0;
+
+        stats_banks_flushed[i][j][k] = 0;
       }
 
       cmd_all_bank_precharge_issuable[i][j] = 0;
@@ -849,12 +851,15 @@ void update_macro_thread(request_t *request) {
 int issue_proof_flush(int channel, int rank, int b){
     dram_state[channel][rank][b].state = REFRESHING;
     dram_state[channel][rank][b].active_row = -1;
-    long long int temp = CYCLE_VAL + T_RP + T_RFC;
+    long long int temp = CYCLE_VAL+ T_RP + ((8-num_issued_refreshes[channel][rank])*T_RFC);
     
     dram_state[channel][rank][b].next_act = temp;
     dram_state[channel][rank][b].next_pre = temp;
     dram_state[channel][rank][b].next_refresh = temp;
     dram_state[channel][rank][b].next_powerdown = temp;
+
+    stats_banks_flushed[channel][rank][b] += 1;
+
     return 1;
 }
 

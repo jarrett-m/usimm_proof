@@ -373,7 +373,6 @@ int main(int argc, char *argv[]) {
             fetched[numc]++;
             num_fetch++;
           } else {
-
             if (opertype[numc] == 'R') {
               num_instructions[numc]++;
               ROB[numc].length++;
@@ -640,6 +639,15 @@ int main(int argc, char *argv[]) {
   }
 
   printf("\ntotal cycles %lld\n", CYCLE_VAL);
+
+  for(int c = 0; c < NUM_CHANNELS; c++){
+    for(int r = 0; r < NUM_RANKS; r++){
+      for(int b = 0; b < NUM_BANKS; b++){
+        //stats_banks_flushed
+        printf("Channel %d Rank %d Bank %d Flushed: %lldx\n", c, r, b, stats_banks_flushed[c][r][b]);
+      }
+    }
+  }
 
   return 0;
 }

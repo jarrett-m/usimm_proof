@@ -237,6 +237,9 @@ long long int stats_num_powerdown_slow[MAX_NUM_CHANNELS][MAX_NUM_RANKS];
 long long int stats_num_powerdown_fast[MAX_NUM_CHANNELS][MAX_NUM_RANKS];
 long long int stats_num_powerup[MAX_NUM_CHANNELS][MAX_NUM_RANKS];
 
+// int 
+long long int stats_banks_flushed[MAX_NUM_CHANNELS][MAX_NUM_RANKS][MAX_NUM_BANKS];
+
 // secured policy stuff
 long long int stats_macro_reads_seen;
 long long int macro_read_queue_length;

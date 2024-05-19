@@ -19,21 +19,21 @@
 #bin/usimm input/4channel.cfg input/fluid input/fluid input/swapt input/swapt input/comm2 input/comm2 input/ferret input/ferret > output/fl-fl-sw-sw-c2-c2-fe-fe-4 &
 #bin/usimm input/4channel.cfg input/fluid input/fluid input/swapt input/swapt input/comm2 input/comm2 input/ferret input/ferret input/black input/black input/freq input/freq input/comm1 input/comm1 input/stream input/stream > output/fl-fl-sw-sw-c2-c2-fe-fe-bl-bl-fr-fr-c1-c1-st-st-4 &
 #531, 538, 549, 554, 602, 607, 619, 623, 657
-bin/usimm input/1channel.cfg input/500.perlbench_r/core_0 input/500.perlbench_r/core_1 input/500.perlbench_r/core_2 input/500.perlbench_r/core_3 > output/perl-1 & 
-bin/usimm input/1channel.cfg input/503.bwaves_r/core_0 input/503.bwaves_r/core_1 input/503.bwaves_r/core_2 input/503.bwaves_r/core_3 > output/bw-1 &
-bin/usimm input/1channel.cfg input/505.mcf_r/core_0 input/505.mcf_r/core_1 input/505.mcf_r/core_2 input/505.mcf_r/core_3 > output/mcf-1 &
-bin/usimm input/1channel.cfg input/508.namd_r/core_0 input/508.namd_r/core_1 input/508.namd_r/core_2 input/508.namd_r/core_3 > output/namd-1 &
-bin/usimm input/1channel.cfg input/520.omnetpp_r/core_0 input/520.omnetpp_r/core_1 input/520.omnetpp_r/core_2 input/520.omnetpp_r/core_3 > output/omnet-1 &
-bin/usimm input/1channel.cfg input/527.cam4_r/core_0 input/527.cam4_r/core_1 input/527.cam4_r/core_2 input/527.cam4_r/core_3 > output/cam4-1 &
-bin/usimm input/1channel.cfg input/531.deepsjeng_r/core_0 input/531.deepsjeng_r/core_1 input/531.deepsjeng_r/core_2 input/531.deepsjeng_r/core_3 > output/deep-1 &
-bin/usimm input/1channel.cfg input/538.imagick_r/core_0 input/538.imagick_r/core_1 input/538.imagick_r/core_2 input/538.imagick_r/core_3 > output/imagick-1 &
-bin/usimm input/1channel.cfg input/549.fotonik3d_r/core_0 input/549.fotonik3d_r/core_1 input/549.fotonik3d_r/core_2 input/549.fotonik3d_r/core_3 > output/fotonik-1 &
-bin/usimm input/1channel.cfg input/554.roms_r/core_0 input/554.roms_r/core_1 input/554.roms_r/core_2 input/554.roms_r/core_3 > output/roms-1 &
-bin/usimm input/1channel.cfg input/602.gcc_s/core_0 input/602.gcc_s/core_1 input/602.gcc_s/core_2 input/602.gcc_s/core_3 > output/gcc-1 &
-bin/usimm input/1channel.cfg input/607.cactuBSSN_s/core_0 input/607.cactuBSSN_s/core_1 input/607.cactuBSSN_s/core_2 input/607.cactuBSSN_s/core_3 > output/cactu-1 &
-bin/usimm input/1channel.cfg input/619.lbm_s/core_0 input/619.lbm_s/core_1 input/619.lbm_s/core_2 input/619.lbm_s/core_3 > output/lbm-1 &
-bin/usimm input/1channel.cfg input/623.xalancbmk_s/core_0 input/623.xalancbmk_s/core_1 input/623.xalancbmk_s/core_2 input/623.xalancbmk_s/core_3 > output/xalan-1 &
-bin/usimm input/1channel.cfg input/657.xz_s/core_0 input/657.xz_s/core_1 input/657.xz_s/core_2 input/657.xz_s/core_3 > output/xz-1 &
+bin/usimm input/1channel.cfg input/500.perlbench_r/core_0 input/500.perlbench_r/core_1 input/500.perlbench_r/core_2 input/500.perlbench_r/core_3 > output/perl-bank-refresh & 
+bin/usimm input/1channel.cfg input/503.bwaves_r/core_0 input/503.bwaves_r/core_1 input/503.bwaves_r/core_2 input/503.bwaves_r/core_3 > output/bw-bank-refresh &
+bin/usimm input/1channel.cfg input/505.mcf_r/core_0 input/505.mcf_r/core_1 input/505.mcf_r/core_2 input/505.mcf_r/core_3 > output/mcf-bank-refresh &
+bin/usimm input/1channel.cfg input/508.namd_r/core_0 input/508.namd_r/core_1 input/508.namd_r/core_2 input/508.namd_r/core_3 > output/namd-bank-refresh &
+bin/usimm input/1channel.cfg input/520.omnetpp_r/core_0 input/520.omnetpp_r/core_1 input/520.omnetpp_r/core_2 input/520.omnetpp_r/core_3 > output/omnet-bank-refresh &
+bin/usimm input/1channel.cfg input/527.cam4_r/core_0 input/527.cam4_r/core_1 input/527.cam4_r/core_2 input/527.cam4_r/core_3 > output/cam4-bank-refresh &
+bin/usimm input/1channel.cfg input/531.deepsjeng_r/core_0 input/531.deepsjeng_r/core_1 input/531.deepsjeng_r/core_2 input/531.deepsjeng_r/core_3 > output/deep-bank-refresh &
+bin/usimm input/1channel.cfg input/538.imagick_r/core_0 input/538.imagick_r/core_1 input/538.imagick_r/core_2 input/538.imagick_r/core_3 > output/imagick-bank-refresh &
+bin/usimm input/1channel.cfg input/549.fotonik3d_r/core_0 input/549.fotonik3d_r/core_1 input/549.fotonik3d_r/core_2 input/549.fotonik3d_r/core_3 > output/fotonik-bank-refresh &
+bin/usimm input/1channel.cfg input/554.roms_r/core_0 input/554.roms_r/core_1 input/554.roms_r/core_2 input/554.roms_r/core_3 > output/roms-bank-refresh &
+bin/usimm input/1channel.cfg input/602.gcc_s/core_0 input/602.gcc_s/core_1 input/602.gcc_s/core_2 input/602.gcc_s/core_3 > output/gcc-bank-refresh &
+bin/usimm input/1channel.cfg input/607.cactuBSSN_s/core_0 input/607.cactuBSSN_s/core_1 input/607.cactuBSSN_s/core_2 input/607.cactuBSSN_s/core_3 > output/cactu-bank-refresh &
+bin/usimm input/1channel.cfg input/619.lbm_s/core_0 input/619.lbm_s/core_1 input/619.lbm_s/core_2 input/619.lbm_s/core_3 > output/lbm-bank-refresh &
+bin/usimm input/1channel.cfg input/623.xalancbmk_s/core_0 input/623.xalancbmk_s/core_1 input/623.xalancbmk_s/core_2 input/623.xalancbmk_s/core_3 > output/xalan-bank-refresh &
+bin/usimm input/1channel.cfg input/657.xz_s/core_0 input/657.xz_s/core_1 input/657.xz_s/core_2 input/657.xz_s/core_3 > output/xz-bank-refresh &
 
 # bin/usimm-base input/1channel.cfg input/500.perlbench_r/core_0 input/500.perlbench_r/core_1 input/500.perlbench_r/core_2 input/500.perlbench_r/core_3 > output/perl-1-base &
 # bin/usimm-base input/1channel.cfg input/503.bwaves_r/core_0 input/503.bwaves_r/core_1 input/503.bwaves_r/core_2 input/503.bwaves_r/core_3 > output/bw-1-base &
